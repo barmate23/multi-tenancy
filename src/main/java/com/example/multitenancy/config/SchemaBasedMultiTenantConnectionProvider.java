@@ -1,5 +1,6 @@
 package com.example.multitenancy.config;
 
+import com.example.multitenancy.tenant.TenantContext;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
 import org.springframework.stereotype.Component;
 
@@ -28,22 +29,28 @@ public class SchemaBasedMultiTenantConnectionProvider implements MultiTenantConn
 
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
+
         Connection connection = getAnyConnection();
-        try {
-            connection.setSchema(tenantIdentifier);
-        } catch (SQLException ex) {
-            connection.setCatalog(tenantIdentifier);
-        }
+
+        // Switch MySQL database (schema)
+        connection.setCatalog(tenantIdentifier);
+
+        // Optional debug log
+        System.out.println("Switched to tenant database: " + tenantIdentifier);
+
         return connection;
     }
 
     @Override
     public void releaseConnection(String tenantIdentifier, Connection connection) throws SQLException {
+
         try {
-            connection.setSchema(null);
-        } catch (SQLException ex) {
-            connection.setCatalog(null);
+            // Reset back to default database
+            connection.setCatalog(TenantContext.DEFAULT_TENANT);
+        } catch (SQLException e) {
+            // ignore if reset fails
         }
+
         releaseAnyConnection(connection);
     }
 
